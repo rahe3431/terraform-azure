@@ -14,6 +14,11 @@ provider "azurerm" {
   features {}
 }
 
+variable "scfile" {
+  type    = string
+  default = "test.bash"
+}
+
 # define resource group
 resource "azurerm_resource_group" "mtc-rg" {
   name     = "mtc-resources"
@@ -109,6 +114,7 @@ resource "azurerm_linux_virtual_machine" "mtc-vm" {
   size                  = "Standard_B1s"
   admin_username        = "adminuser"
   network_interface_ids = [azurerm_network_interface.mtc-nif.id]
+
   # create ssh key so you can ssh into vm
   admin_ssh_key {
     username   = "adminuser"
@@ -135,3 +141,19 @@ resource "azurerm_linux_virtual_machine" "mtc-vm" {
 }
 
 
+resource "azurerm_virtual_machine_extension" "vmext" {
+  # resource_group_name = azurerm_resource_group.mtc-rg.name
+  # location            = azurerm_resource_group.mtc-rg.location
+  name = "vmext"
+
+  virtual_machine_id   = azurerm_linux_virtual_machine.mtc-vm.id
+  publisher            = "Microsoft.Azure.Extensions"
+  type                 = "CustomScript"
+  type_handler_version = "2.0"
+
+  protected_settings = <<PROT
+    {
+        "script": "${base64encode(file(var.scfile))}"
+    }
+    PROT
+}
